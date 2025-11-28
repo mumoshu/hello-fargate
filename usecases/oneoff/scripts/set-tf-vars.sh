@@ -8,7 +8,7 @@
 # --- Required Environment Variables ---
 
 # Check for required variables
-required_vars=("AWS_ACCOUNT_ID" "AWS_REGION" "TF_SUBNET_IDS")
+required_vars=("AWS_ACCOUNT_ID" "AWS_REGION" "TF_VPC_ID")
 missing_vars=()
 for var in "${required_vars[@]}"; do
     if [[ -z "${!var}" ]]; then
@@ -33,14 +33,8 @@ IMAGE_TAG=${IMAGE_TAG:-"latest"}
 TF_VAR_image_uri="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${IMAGE_NAME}:${IMAGE_TAG}"
 echo "export TF_VAR_image_uri=\"${TF_VAR_image_uri}\""
 
-# 2. TF_VAR_subnet_ids (expects comma-separated string in TF_SUBNET_IDS)
-IFS=',' read -r -a subnet_array <<< "$TF_SUBNET_IDS"
-json_subnets=$(printf '%s\n' "${subnet_array[@]}" | jq -R . | jq -s .)
-if [[ -z "$json_subnets" ]] || [[ "$json_subnets" == "[]" ]]; then
-     echo "Error: TF_SUBNET_IDS environment variable is empty or invalid." >&2
-     exit 1
-fi
-echo "export TF_VAR_subnet_ids='${json_subnets}'"
+# 2. TF_VAR_vpc_id
+echo "export TF_VAR_vpc_id=\"${TF_VPC_ID}\""
 
 # 3. TF_VAR_ecs_cluster_arn (fetch from shared infra or use environment variable)
 if [[ -n "$TF_ECS_CLUSTER_ARN" ]]; then

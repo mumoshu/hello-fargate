@@ -1,12 +1,16 @@
-data "aws_vpc" "default" {
-  default = true
+# Get subnets from the specified VPC
+data "aws_subnets" "vpc_subnets" {
+  filter {
+    name   = "vpc-id"
+    values = [var.vpc_id]
+  }
 }
 
 # Security Group for Fargate tasks
 resource "aws_security_group" "fargate_task_sg" {
   name        = "hello-fargate-oneoff-task-sg"
   description = "Allow all outbound traffic for Fargate tasks"
-  vpc_id      = data.aws_vpc.default.id
+  vpc_id      = var.vpc_id
 
   egress {
     from_port   = 0
@@ -134,6 +138,11 @@ output "container_name" {
 }
 
 output "subnet_ids" {
-  description = "The subnet IDs used for networking (passed through)"
-  value       = var.subnet_ids
+  description = "The subnet IDs discovered from the VPC"
+  value       = data.aws_subnets.vpc_subnets.ids
+}
+
+output "vpc_id" {
+  description = "The VPC ID used for networking"
+  value       = var.vpc_id
 }

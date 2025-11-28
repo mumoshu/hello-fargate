@@ -36,9 +36,9 @@ variable "task_memory" {
   default     = 512
 }
 
-variable "subnet_ids" {
-  description = "List of subnet IDs for Fargate task networking"
-  type        = list(string)
+variable "vpc_id" {
+  description = "The VPC ID for Fargate task networking"
+  type        = string
 }
 
 variable "security_group_ids" {
