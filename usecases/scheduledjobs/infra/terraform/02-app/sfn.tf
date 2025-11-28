@@ -72,7 +72,7 @@ resource "aws_sfn_state_machine" "main" {
         "Resource": "arn:aws:states:::ecs:runTask.waitForTaskToken",
         "Parameters": {
           "LaunchType": "FARGATE",
-          "Cluster": "${aws_ecs_cluster.main.arn}",
+          "Cluster": "${var.ecs_cluster_arn}",
           "TaskDefinition": "${aws_ecs_task_definition.app_task.arn}",
           "NetworkConfiguration": {
             "AwsvpcConfiguration": {
@@ -109,7 +109,7 @@ resource "aws_sfn_state_machine" "main" {
               "Resource": "arn:aws:states:::ecs:runTask.waitForTaskToken",
               "Parameters": {
                 "LaunchType": "FARGATE",
-                "Cluster": "${aws_ecs_cluster.main.arn}",
+                "Cluster": "${var.ecs_cluster_arn}",
                 "TaskDefinition": "${aws_ecs_task_definition.app_task.arn}",
                 "NetworkConfiguration": {
                   "AwsvpcConfiguration": {

@@ -49,7 +49,29 @@ if [[ -z "$json_subnets" ]] || [[ "$json_subnets" == "[]" ]]; then
 fi
 echo "export TF_VAR_subnet_ids='${json_subnets}'"
 
-# --- Optional Environment Variables --- 
+# --- TF_VAR_ecs_cluster_arn (from shared infra or environment variable) ---
+
+if [[ -n "$TF_ECS_CLUSTER_ARN" ]]; then
+    echo "export TF_VAR_ecs_cluster_arn=\"${TF_ECS_CLUSTER_ARN}\""
+else
+    # Try to fetch from shared infra terraform output
+    SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+    SHARED_INFRA_DIR="$SCRIPT_DIR/../../../infra/terraform"
+    if [[ -d "$SHARED_INFRA_DIR" ]] && [[ -f "$SHARED_INFRA_DIR/terraform.tfstate" ]]; then
+        ECS_CLUSTER_ARN=$(cd "$SHARED_INFRA_DIR" && terraform output -raw ecs_cluster_arn 2>/dev/null)
+        if [[ -n "$ECS_CLUSTER_ARN" ]]; then
+            echo "export TF_VAR_ecs_cluster_arn=\"${ECS_CLUSTER_ARN}\""
+        else
+            echo "Error: Could not fetch ecs_cluster_arn from shared infra. Set TF_ECS_CLUSTER_ARN manually." >&2
+            exit 1
+        fi
+    else
+        echo "Error: Shared infra not deployed. Deploy infra/terraform first or set TF_ECS_CLUSTER_ARN manually." >&2
+        exit 1
+    fi
+fi
+
+# --- Optional Environment Variables ---
 
 # 4. TF_VAR_security_group_ids (additional SGs, expects comma-separated TF_EXTRA_SG_IDS)
 if [[ -n "$TF_EXTRA_SG_IDS" ]]; then

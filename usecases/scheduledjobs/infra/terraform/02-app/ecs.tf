@@ -3,6 +3,11 @@ variable "image_uri" {
   type        = string
 }
 
+variable "ecs_cluster_arn" {
+  description = "The ARN of the shared ECS cluster (from infra/terraform)"
+  type        = string
+}
+
 variable "task_cpu" {
   description = "Fargate task CPU units (e.g., 256, 512, 1024) (Optional, set via TF_TASK_CPU env var)"
   type        = number
@@ -40,26 +45,6 @@ resource "aws_security_group" "fargate_task_sg" {
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags = {
-    Project = var.prefix
-  }
-}
-
-# ECS Cluster to host Fargate tasks
-resource "aws_ecs_cluster" "main" {
-  name = "${var.prefix}-cluster"
-
-  configuration {
-    execute_command_configuration {
-      logging = "DEFAULT"
-    }
-  }
-
-  setting {
-    name  = "containerInsights"
-    value = "enabled"
   }
 
   tags = {

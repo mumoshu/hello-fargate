@@ -16,9 +16,10 @@ fi
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 PROJECT_ROOT=$(realpath "$SCRIPT_DIR/..")
-TF_ECR_DIR="$PROJECT_ROOT/terraform/01-ecr"
-TF_APP_DIR="$PROJECT_ROOT/terraform/02-app"
-TEST_RUNNER_DIR="$PROJECT_ROOT/test-runner"
+SHARED_INFRA_DIR=$(realpath "$PROJECT_ROOT/../../infra/terraform")
+TF_ECR_DIR="$PROJECT_ROOT/infra/terraform/01-ecr"
+TF_APP_DIR="$PROJECT_ROOT/infra/terraform/02-app"
+TEST_RUNNER_DIR="$PROJECT_ROOT/tests/jobrun"
 IMAGE_TAG="latest" # Define image tag consistently
 
 # --- Helper Functions ---
@@ -61,6 +62,24 @@ if [[ ${#missing_env_vars[@]} -ne 0 ]]; then
     error "Please set them (e.g., in .env.local) and ensure they are loaded into your environment."
 fi
 log "Environment checks passed."
+
+# --- Step 0: Check Shared Infrastructure ---
+log "Step 0: Checking shared infrastructure..."
+if [[ ! -f "$SHARED_INFRA_DIR/terraform.tfstate" ]]; then
+    log "Shared infrastructure not deployed. Deploying now..."
+    cd "$SHARED_INFRA_DIR"
+    terraform init -input=false || error "Shared infra Terraform init failed."
+    terraform apply -auto-approve -input=false || error "Shared infra Terraform apply failed."
+fi
+
+log "Fetching shared infrastructure outputs..."
+cd "$SHARED_INFRA_DIR"
+ECS_CLUSTER_ARN=$(terraform output -raw ecs_cluster_arn)
+if [[ -z "$ECS_CLUSTER_ARN" ]]; then
+    error "Failed to fetch ecs_cluster_arn from shared infrastructure."
+fi
+log "ECS Cluster ARN: $ECS_CLUSTER_ARN"
+export TF_ECS_CLUSTER_ARN="$ECS_CLUSTER_ARN"
 
 # --- Step 1: Set Terraform Variables ---
 log "Step 1: Setting Terraform environment variables..."
@@ -193,10 +212,11 @@ if [[ "$PERFORM_CLEANUP" == true ]]; then
   eval $("$SCRIPT_DIR/set-tf-vars.sh") || log "Warning: Failed to set Terraform variables for ecr destroy."
   terraform destroy -auto-approve -input=false || error "ECR Terraform destroy failed."
   log "ECR repository cleaned up successfully."
+  log "Note: Shared infrastructure (infra/terraform) was NOT destroyed."
 
 else
   log "Step 6: Skipping cleanup as requested."
 fi
 
 log "E2E script completed successfully!"
-exit 0 
+exit 0
