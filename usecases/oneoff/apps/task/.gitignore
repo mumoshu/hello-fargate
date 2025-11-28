@@ -1,0 +1,7 @@
+# Binary
+go-app
+main
+
+# IDE
+.idea/
+.vscode/
