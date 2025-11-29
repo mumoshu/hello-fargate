@@ -1,0 +1,90 @@
+#!/bin/bash
+set -e
+
+# End-to-end test script for backend use case (Service Connect)
+# This script deploys infrastructure, runs the test, and optionally cleans up
+
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+PROJECT_ROOT=$(realpath "$SCRIPT_DIR/..")
+TF_APP_DIR="$PROJECT_ROOT/infra/terraform/02-app"
+TEST_DIR="$PROJECT_ROOT/tests/sctest"
+SHARED_INFRA_DIR=$(realpath "$PROJECT_ROOT/../../infra/terraform")
+
+# Parse arguments
+CLEANUP=true
+for arg in "$@"; do
+    case $arg in
+        --no-cleanup)
+            CLEANUP=false
+            shift
+            ;;
+    esac
+done
+
+cleanup() {
+    if [ "$CLEANUP" = true ]; then
+        echo "[E2E] INFO: Cleaning up infrastructure..."
+        cd "$SCRIPT_DIR"
+        ./destroy.sh || true
+    else
+        echo "[E2E] INFO: Skipping cleanup (--no-cleanup specified)"
+    fi
+}
+
+trap cleanup EXIT
+
+echo "[E2E] INFO: Running sanity checks..."
+
+# Check required environment variables
+echo "[E2E] INFO: Checking for required environment variables..."
+if [ -z "$AWS_REGION" ]; then
+    export AWS_REGION=$(aws configure get region 2>/dev/null || echo "ap-northeast-1")
+fi
+if [ -z "$AWS_ACCOUNT_ID" ]; then
+    export AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text 2>/dev/null)
+fi
+
+echo "[E2E] INFO: AWS Region: $AWS_REGION"
+echo "[E2E] INFO: AWS Account: $AWS_ACCOUNT_ID"
+echo "[E2E] INFO: Environment checks passed."
+
+# Step 1: Deploy infrastructure
+echo "[E2E] INFO: Step 1: Deploying infrastructure using apply.sh..."
+cd "$SCRIPT_DIR"
+chmod +x apply.sh build.sh set-tf-vars.sh destroy.sh
+./apply.sh
+
+# Get outputs for test
+echo "[E2E] INFO: Step 2: Getting infrastructure outputs..."
+eval $(./set-tf-vars.sh)
+
+ECS_CLUSTER_ARN="$TF_VAR_ecs_cluster_arn"
+BACKEND_SERVICE=$(terraform -chdir="$TF_APP_DIR" output -raw backend_service_name 2>/dev/null)
+FRONTEND_SERVICE=$(terraform -chdir="$TF_APP_DIR" output -raw frontend_service_name 2>/dev/null)
+
+echo "[E2E] INFO: ECS Cluster: $ECS_CLUSTER_ARN"
+echo "[E2E] INFO: Backend Service: $BACKEND_SERVICE"
+echo "[E2E] INFO: Frontend Service: $FRONTEND_SERVICE"
+
+# Step 3: Build and run test
+echo "[E2E] INFO: Step 3: Building test runner..."
+cd "$TEST_DIR"
+go mod tidy
+go build -o sctest .
+
+echo "[E2E] INFO: Step 4: Running Service Connect test..."
+./sctest \
+    -cluster-arn="$ECS_CLUSTER_ARN" \
+    -backend-service="$BACKEND_SERVICE" \
+    -frontend-service="$FRONTEND_SERVICE" \
+    -requests=20 \
+    -timeout=5m
+
+TEST_EXIT_CODE=$?
+
+if [ $TEST_EXIT_CODE -eq 0 ]; then
+    echo "[E2E] INFO: Test completed successfully!"
+else
+    echo "[E2E] ERROR: Test failed with exit code $TEST_EXIT_CODE"
+    exit $TEST_EXIT_CODE
+fi
