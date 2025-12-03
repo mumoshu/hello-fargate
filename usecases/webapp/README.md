@@ -1,4 +1,4 @@
-# Webapp Use Case
+# Webapp on Fargate - ALB authenticate-cognito
 
 This use case demonstrates a web application with user authentication using ALB's `authenticate-cognito` action. Users are redirected to Cognito's hosted login page, and after successful authentication, ALB sets a session cookie for subsequent requests.
 
@@ -179,3 +179,9 @@ webapp/
 - The test user password is hardcoded for testing purposes only
 - In production, use proper TLS certificates and secure password management
 - ALB session cookies are encrypted and signed by AWS
+
+## Related Documentation
+
+- [ALB authenticate-cognito action](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/listener-authenticate-users.html)
+- [Amazon Cognito User Pools](https://docs.aws.amazon.com/cognito/latest/developerguide/cognito-user-identity-pools.html)
+- [Cognito Hosted UI](https://docs.aws.amazon.com/cognito/latest/developerguide/cognito-user-pools-app-integration.html)

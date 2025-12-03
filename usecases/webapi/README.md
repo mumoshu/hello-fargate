@@ -1,4 +1,4 @@
-# WebAPI Use Case: ALB JWT Validation with Cognito
+# WebAPI on Fargate - ALB JWT Validation
 
 This use case demonstrates API-only web services behind AWS ALB with JWT authentication using the ALB's `jwt-validation` action (November 2025 feature) and Amazon Cognito as the OIDC provider.
 
@@ -171,23 +171,7 @@ export TF_VAR_internal=true
 
 ## Troubleshooting
 
-### JWT Validation Fails
-- Check ALB listener rule logs in CloudWatch
-- Verify Cognito JWKS URL is accessible
-- Ensure token hasn't expired (`exp` claim)
-
-### 401 on All Requests
-- Verify `Authorization: Bearer <token>` header format
-- Check that token includes required scope
-- Verify ALB listener rule path pattern matches
-
-### Certificate Errors
-- Test runner uses `InsecureSkipVerify: true` for self-signed cert
-- For browser testing, accept the self-signed certificate warning
-
-### ECS Tasks Not Starting
-- Check CloudWatch logs at `/ecs/hello-fargate-webapi`
-- Verify security groups allow traffic from ALB
+See [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for common issues and solutions.
 
 ## Related Documentation
 

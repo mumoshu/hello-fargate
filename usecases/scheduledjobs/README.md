@@ -1,8 +1,41 @@
-# Hello Fargate for Scheduled Jobs
+# Scheduled Jobs on Fargate - EventBridge + Step Functions
 
 This project sets up a scheduled workflow using Fargate and other AWS services.
 
 The workflow consists of tasks running a Go application containerized and executed on AWS Fargate.
+
+## Implementation
+
+**Execution Model:** EventBridge → Step Functions → ECS Tasks
+
+**App Pattern:**
+```go
+func main() {
+    taskToken := os.Getenv("AWS_STEP_FUNCTIONS_TASK_TOKEN")
+    inputJSON := os.Getenv("TASK_INPUT")
+
+    // Parse input
+    var input TaskInput
+    json.Unmarshal([]byte(inputJSON), &input)
+
+    // Do work...
+
+    // Report success/failure to Step Functions
+    sfnClient.SendTaskSuccess(ctx, &sfn.SendTaskSuccessInput{
+        TaskToken: &taskToken,
+        Output:    &outputJSON,
+    })
+}
+```
+
+**Terraform Resources:**
+- `aws_sfn_state_machine` - Workflow definition
+- `aws_cloudwatch_event_rule` - Schedule trigger
+- `aws_cloudwatch_event_target` - Connect rule to SFN
+- `aws_iam_role` - SFN role with ECS:RunTask + IAM:PassRole
+- `aws_iam_role` - EventBridge role with States:StartExecution
+
+**Test Pattern:** Start execution via SFN API or EventBridge, monitor execution status
 
 ## Overview
 

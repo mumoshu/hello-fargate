@@ -1,6 +1,29 @@
-# Hello Fargate for Batch Jobs
+# Batch Jobs on Fargate - AWS Batch Array Processing
 
 This project demonstrates batch processing using AWS Batch with Fargate compute.
+
+## Architecture
+
+```
+┌─────────────────┐      ┌─────────────────┐      ┌─────────────────┐
+│   Test Runner   │─────▶│  AWS Batch      │─────▶│    Fargate      │
+│   (submit job)  │      │  Job Queue      │      │    Compute      │
+└─────────────────┘      └─────────────────┘      │   Environment   │
+                                │                 └────────┬────────┘
+                                │                          │
+                                ▼                          ▼
+                         ┌─────────────────┐      ┌─────────────────┐
+                         │  Job Definition │      │  Array Jobs     │
+                         │  (container     │      │  [0] [1] [2]... │
+                         │   config)       │      │  (parallel)     │
+                         └─────────────────┘      └────────┬────────┘
+                                                           │
+                                                           ▼
+                                                  ┌─────────────────┐
+                                                  │ CloudWatch Logs │
+                                                  │  (job output)   │
+                                                  └─────────────────┘
+```
 
 ## Implementation
 
@@ -92,3 +115,9 @@ go build -o test-runner .
 ```bash
 ./scripts/destroy.sh
 ```
+
+## Related Documentation
+
+- [AWS Batch on Fargate](https://docs.aws.amazon.com/batch/latest/userguide/fargate.html)
+- [Array Jobs](https://docs.aws.amazon.com/batch/latest/userguide/array_jobs.html)
+- [Job Definitions](https://docs.aws.amazon.com/batch/latest/userguide/job_definitions.html)

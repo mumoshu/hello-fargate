@@ -7,7 +7,7 @@ Additionally, set the following environment variables. One common way to manage 
 ```bash
 # .env.local (Example - Fill in your actual values)
 
-# --- Required --- 
+# --- Required ---
 
 # Your 12-digit AWS Account ID
 export AWS_ACCOUNT_ID="YOUR_AWS_ACCOUNT_ID"
